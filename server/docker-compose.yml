@@ -1,0 +1,63 @@
+#services:
+#  app:
+#    build: .
+#    ports:
+#      - "8000:8000"
+#    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload  # Added --reload
+#    depends_on:
+#      - db
+#    volumes:
+#      - ./backend:/app/backend
+#      - ./.env:/app/.env
+#
+#  db:
+#    image: postgres:15
+#    environment:
+#      - POSTGRES_USER=user
+#      - POSTGRES_PASSWORD=password
+#      - POSTGRES_DB=doctor_booking
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+#
+#volumes:
+#  postgres_data:
+
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload  # Added --reload
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app/backend
+      - ./.env:/app/.env
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=doctor_booking
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com  # Change this
+      - PGADMIN_DEFAULT_PASSWORD=admin  # Change this
+    depends_on:
+      - db
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+volumes:
+  postgres_data:
+  pgadmin_data:

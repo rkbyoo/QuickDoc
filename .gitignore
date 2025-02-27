@@ -1,1 +1,6 @@
 client/node_modules/*
+server/.env
+server/appointments.db
+server/init.sql
+server/backend/__pycache__
+server/backend/services/__pycache__
