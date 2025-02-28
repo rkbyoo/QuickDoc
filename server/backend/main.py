@@ -174,47 +174,48 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
     """
     form_data = await request.form()
     message_body = form_data.get("Body", "").lower().strip()
-    from_number = form_data.get("From", "").replace("whatsapp:+91", "")
+    from_number = form_data.get("From", "").replace("whatsapp:", "")  # e.g., "+9191234567890"
 
     logger.info(f"Received WhatsApp reply from {from_number}: {message_body}")
 
-    from_number_with_country_code = f"+91{from_number}"
     # Parse the message (e.g., "confirm 1" or "cancel 1")
     parts = message_body.split()
     if len(parts) != 2 or parts[0] not in ["confirm", "cancel"]:
-        send_whatsapp_message(from_number_with_country_code,
-                              "Invalid reply. Please use 'confirm <id>' or 'cancel <id>' with your appointment ID.")
+        send_whatsapp_message(from_number, "Invalid reply. Please use 'confirm <id>' or 'cancel <id>' with your appointment ID.")
         return {"status": "invalid"}
 
     action = parts[0]
     try:
         appointment_id = int(parts[1])
     except ValueError:
-        send_whatsapp_message(from_number_with_country_code, "Invalid appointment ID. Please include a valid number.")
+        send_whatsapp_message(from_number, "Invalid appointment ID. Please include a valid number.")
         return {"status": "invalid"}
 
-    appointment = db.query(Appointment).filter(Appointment.id == appointment_id,
-                                               Appointment.phone == from_number).first()
+    # Match the appointment using the full phone number with country code
+    appointment = db.query(Appointment).filter(
+        Appointment.id == appointment_id,
+        Appointment.phone == from_number
+    ).first()
     if not appointment:
-        send_whatsapp_message(from_number_with_country_code, "Appointment not found or not associated with this number.")
+        send_whatsapp_message(from_number, "Appointment not found or not associated with this number.")
         return {"status": "not_found"}
 
     if action == "confirm":
         if appointment.is_confirmed:
-            send_whatsapp_message(from_number_with_country_code, "This appointment is already confirmed.")
+            send_whatsapp_message(from_number, "This appointment is already confirmed.")
             return {"status": "already_confirmed"}
         appointment.is_confirmed = True
         db.commit()
-        send_whatsapp_message(from_number_with_country_code, f"Appointment {appointment_id} confirmed successfully!")
+        send_whatsapp_message(from_number, f"Appointment {appointment_id} confirmed successfully!")
         logger.info(f"Appointment {appointment_id} confirmed via WhatsApp by {from_number}")
         return {"status": "confirmed"}
 
     elif action == "cancel":
         if appointment.is_confirmed:
-            send_whatsapp_message(from_number_with_country_code, "Cannot cancel a confirmed appointment via WhatsApp. Contact support.")
+            send_whatsapp_message(from_number, "Cannot cancel a confirmed appointment via WhatsApp. Contact support.")
             return {"status": "cannot_cancel"}
         db.delete(appointment)
         db.commit()
-        send_whatsapp_message(from_number_with_country_code, f"Appointment {appointment_id} canceled successfully!")
+        send_whatsapp_message(from_number, f"Appointment {appointment_id} canceled successfully!")
         logger.info(f"Appointment {appointment_id} canceled via WhatsApp by {from_number}")
         return {"status": "canceled"}
